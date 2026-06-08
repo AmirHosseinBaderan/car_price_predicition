@@ -32,6 +32,54 @@ KNN is a simple, instance-based learning algorithm used here for regression:
 
 The key advantage of KNN is its simplicity and interpretability - predictions are based on actual similar cars from the dataset rather than learned parameters.
 
+## API Reference
+
+### `CarPricePredictor(excel_file: str, k: int = 5)`
+
+Constructor that initializes the predictor with the path to the Excel data file and the number of neighbors (k).
+
+### `__init__(self, excel_file: str, k: int = 5)`
+
+Initializes the predictor with:
+- `excel_file`: Path to the Excel file containing car data
+- `k`: Number of nearest neighbors to use (default: 5)
+
+### `load(self)`
+
+Reads the Excel file into a pandas DataFrame and validates that required columns exist. Required columns: Price, Mileage, Make, Model, Trim, Type, Cylinder, Liter. Removes rows with missing values.
+
+### `prepare(self)`
+
+Prepares features for prediction:
+- One-hot encodes categorical columns (Make, Model, Trim, Type)
+- Normalizes numeric columns (Mileage, Cylinder, Liter) using z-score normalization
+- Stores feature columns and scaling parameters (means, stds) for later use
+
+### `fit(self)`
+
+Convenience method that calls `load()` and `prepare()` in sequence.
+
+### `build_feature_vector(self, car: dict) -> np.ndarray`
+
+Converts a car dictionary into a normalized feature vector compatible with the training data:
+- Applies one-hot encoding to categorical features
+- Aligns features with training data columns (missing features filled with 0)
+- Applies the same normalization used during training
+
+### `predict(self, car: dict) -> float`
+
+Predicts the price of a car:
+- Builds feature vector using `build_feature_vector()`
+- Computes Euclidean distances to all training samples
+- Finds k nearest neighbors
+- Returns the mean price of those neighbors
+
+### `evaluate(self)`
+
+Evaluates model performance using leave-one-out cross-validation:
+- For each car, predicts price using neighbors from the rest of the dataset
+- Calculates and prints MAE (Mean Absolute Error) and RMSE (Root Mean Squared Error)
+
 ## Usage
 
 ```bash
