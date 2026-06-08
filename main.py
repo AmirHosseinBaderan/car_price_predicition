@@ -1,7 +1,7 @@
-from car_price_predicator import CarPricePredicator
+from car_price_predicator import CarPricePredictor
 
 def main():
-    predicator = CarPricePredicator(
+    predicator = CarPricePredictor(
         excel_file="./cars_data.xls"
     )
     
