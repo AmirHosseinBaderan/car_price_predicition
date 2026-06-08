@@ -8,7 +8,7 @@ This project predicts car prices based on vehicle features. Given a car's specif
 
 ## How it works
 
-The `CarPricePredictor` class in `car_price_predicator.py` implements a KNN regression model:
+The `CarPricePredictor` class in `car_price_predictor.py` implements a KNN regression model:
 
 1. **Data Loading** - Reads car data from an Excel file (`cars_data.xls`) containing 804 vehicle records with columns: Price, Mileage, Make, Model, Trim, Type, Cylinder, Liter, Doors, Cruise, Sound, Leather
 
