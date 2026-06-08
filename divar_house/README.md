@@ -1,0 +1,163 @@
+# Divar House Price Prediction
+
+Predicts residential property prices in Tehran using real listings scraped from Divar. The model takes structural features (area, rooms, year, parking, elevator, warehouse) and outputs an estimated price in Toman.
+
+## Overview
+
+This project implements a machine learning pipeline for estimating residential property prices in Tehran, Iran. The data is sourced from publicly available listings on [Divar](https://divar.ir), a popular Iranian classifieds platform. The end-to-end workflow covers raw data collection, cleaning, Persian text normalization, feature engineering, model training, evaluation, and serving predictions.
+
+**Project type:** Supervised regression  
+**Algorithm:** Random Forest Regression  
+**Target variable:** Property price (Toman)
+
+## Data Source
+
+The raw dataset is obtained by scraping Divar's real-estate category for Tehran. Typical columns include:
+
+| Column | Description |
+|--------|-------------|
+| `Price` | Listed price in Toman (contains Persian digits, commas, units) |
+| `Area` | Property area in square meters |
+| `Construction` | Year of construction (Persian calendar) |
+| `Room` | Number of rooms |
+| `Warehouse` | Warehouse availability (boolean) |
+| `Parking` | Parking availability (boolean) |
+| `Elevator` | Elevator availability (boolean) |
+| `Address` | Full address string (free text, mainly for city extraction) |
+
+Raw scraped data is saved as `divar_house/housing.csv`. After cleaning, the dataset becomes `divar_house/houses_cleaned.csv`.
+
+## How to Install & Run
+
+### Prerequisites
+
+- Python 3.9+
+- pandas
+- numpy
+- scikit-learn
+
+### Setup
+
+```bash
+pip install -r requirements.txt
+```
+
+### Run the full pipeline
+
+```bash
+python divar_house/main.py
+```
+
+This will:
+1. Load cleaned data (`houses_cleaned.csv`)
+2. Preprocess features
+3. Train a Random Forest regressor
+4. Evaluate on a held-out test set
+5. Print MAE and RMSE
+6. Output a sample prediction
+
+## Implementation Details
+
+### 1. Data Cleaning (`clean.py`)
+
+The raw scraped data contains rows with negotiated prices (`توافqli`). These are non-numeric and unusable for regression. `clean.py` performs initial cleaning:
+
+- Reads `housing.csv`
+- Converts `Price` to string and strips whitespace
+- Filters out all rows where `Price == "توافقی"`
+- Saves the result to `houses_cleaned.csv`
+
+### 2. Preprocessing (`preprocessing.py`)
+
+This module converts raw listings into a numeric feature matrix and target vector.
+
+**Price normalization** — The `clean_price` function (in `utils.py`) handles Persian-localized numeric strings:
+- Converts Persian digits (`۰-۹`) to English digits
+- Removes currency units (`تومان`) and thousands separators (`٬`, `,`)
+- Strips non-numeric characters
+- Parses to `float`
+
+**Boolean encoding** — Amenity columns (`Warehouse`, `Parking`, `Elevator`) may contain values like `true`, `1`, `yes`, or `دارد`. These are mapped to `1` (available) or `0` (not available) via `clean_bool`.
+
+**City extraction** — An `Address`-based heuristic in `extract_city` extracts city information. Currently `تهران` (Tehran) is mapped to `tehran`, everything else to `other`.
+
+**Feature matrix construction**:
+- `Address` column is dropped after city extraction
+- Target: `y = Price`
+- Features: `X` = all other numeric columns
+
+### 3. Feature Engineering Pipeline (`main.py`)
+
+1. **Train/Test Split** — 80% training / 20% testing using `train_test_split` with `random_state=42`
+2. **Standardization** — `StandardScaler` is fit on the training set and applied to both train and test splits
+
+### 4. Model (`model.py`)
+
+A `RandomForestRegressor` is used with the following configuration:
+
+```python
+RandomForestRegressor(
+    n_estimators=200,
+    max_depth=None,
+    random_state=42,
+    n_jobs=1
+)
+```
+
+Random Forest was chosen for its ability to capture non-linear relationships and feature interactions without requiring extensive hyperparameter tuning.
+
+### 5. Evaluation & Prediction
+
+- **Median Absolute Error (MAE):** Measures the typical absolute deviation of predictions from actual prices.
+- **Root Mean Squared Error (RMSE):** Penalizes larger errors more heavily.
+
+Sample inference is performed on a synthetic property:
+- Area: 90 sqm
+- Construction: 1393
+- Room: 2
+- Warehouse: 1
+- Parking: 0
+- Elevator: 1
+- City: Tehran
+
+Output format uses Persian digit conversion and Toman grouping via `format_toman`.
+
+## Project Structure
+
+```
+divar_house/
+├── main.py                # Entry point: loads data, trains, evaluates, predicts
+├── model.py               # RandomForestRegressor configuration
+├── preprocessing.py       # Feature extraction: price/bool/city cleaning, X/y split
+├── utils.py               # Low-level text normalizers: digits, price parsing, formatting
+├── clean.py               # Initial CSV filter: removes negotiated (توافقی) prices
+├── housing.csv            # Raw Divar listings (not committed)
+├── houses_cleaned.csv     # Cleaned dataset (generated by clean.py)
+└── README.md              # This file
+```
+
+## Results Interpretation
+
+The model outputs estimates in Toman. Due to the high variability of Tehran's real estate market:
+- **MAE** indicates the median error in Toman.
+- **RMSE** amplifies larger prediction failures (overpriced outliers).
+
+To interpret a prediction, run the script and look at the "Predicted price" line, which is formatted in Persian numerals with comma separators.
+
+## Limitations
+
+- **City coverage:** Currently only Tehran (`تهران`) vs `other` is encoded. More cities would require one-hot encoding.
+- **Feature scope:** The model uses only structural features. Location-level features (neighborhood, district, proximity to metro/park) are not included.
+- **Sample size:** Accuracy depends on the number of scraped listings. More data generally improves Random Forest performance.
+- **Price inflation:** Rental prices streak vs sale prices are not separated.
+- **Temporal mismatch:** Listing prices change over time; the model assumes a static snapshot.
+
+## Future Work
+
+- [ ] Extend `extract_city` to parse all major Tehran districts
+- [ ] Incorporate geolocation features (lat/lng or district ID)
+- [ ] Try gradient boosting (XGBoost / LightGBM) and compare RMSE
+- [ ] Hyperparameter tuning with `GridSearchCV`
+- [ ] Add a web interface or API endpoint using FastAPI
+- [ ] Implement cross-validation (K-Fold) for robust MAE/RMSE estimates
+- [ ] Separate models for sale vs rent listings
