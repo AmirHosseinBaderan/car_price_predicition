@@ -1,4 +1,4 @@
-from car_price_predicator import CarPricePredictor
+from car_price_predictor import CarPricePredictor
 
 def main():
     predicator = CarPricePredictor(
