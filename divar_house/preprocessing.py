@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import clean_price,extract_city
+from utils import clean_price,extract_city,clean_bool
 
 def preprocess(df:pd.DataFrame):
     #Price
@@ -9,10 +9,8 @@ def preprocess(df:pd.DataFrame):
     bool_cols = ["Warehouse", "Parking", "Elevator"]
     
     for col in bool_cols:
-        df[col] = df[col].astype(int)
+        df[col] = df[col].apply(clean_bool)
         
-    # city 
-    df["City"] = df["City"].apply(extract_city)
     
     # drop raw text
     df = df.drop(columns=["Address"])
@@ -20,8 +18,5 @@ def preprocess(df:pd.DataFrame):
     # Features
     X = df.drop(columns=["Price"])
     y = df["Price"]
-    
-    # one-hot encode city
-    X = pd.get_dummies(X,columns=["City"],drop_first=True)
-    
+        
     return X,y
